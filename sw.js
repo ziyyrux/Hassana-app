@@ -1,6 +1,6 @@
 // Service Worker – حسنة (offline support)
 // غيّر رقم الإصدار عند كل تحديث للتطبيق حتى يصل التحديث للمستخدمين
-const VERSION = 'hasana-v8';
+const VERSION = 'hasana-v9';
 const PAGES = VERSION + '-pages';
 const ASSETS = VERSION + '-assets';
 
