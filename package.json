@@ -1,0 +1,17 @@
+{
+  "name": "hassana-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "أذكار وأدعية يومية",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node --check server.js && node --check lib/zad.js && node --check lib/zad-format.js",
+    "lint": "node --check server.js && node --check lib/zad.js && node --check lib/zad-format.js && node --check sw.js",
+    "test": "node --test lib/zad.test.js"
+  },
+  "dependencies": {
+    "@google/genai": "^3.6.1",
+    "express": "^4.21.2"
+  }
+}

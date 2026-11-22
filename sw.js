@@ -1,6 +1,6 @@
 // Service Worker – حسنة (offline support)
 // غيّر رقم الإصدار عند كل تحديث للتطبيق حتى يصل التحديث للمستخدمين
-const VERSION = 'hasana-v15';
+const VERSION = 'hasana-v17';
 const PAGES = VERSION + '-pages';
 const ASSETS = VERSION + '-assets';
 
@@ -46,7 +46,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
-  if (url.pathname.startsWith('/_vercel/')) return; // الإحصائيات: لا تُخزَّن
+  if (url.pathname.startsWith('/_vercel/') || url.pathname.startsWith('/api/')) return; // الإحصائيات والـ API: لا تُخزَّن
 
   // الصفحة: الشبكة أولاً (لتصل التحديثات)، وعند انقطاع الإنترنت من الكاش
   // أي مسار (/ أو /index.html ...) يفتح الصفحة المخزنة عند عدم وجود اتصال
