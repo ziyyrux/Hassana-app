@@ -623,9 +623,21 @@ body:has(.zad-bar) .toast{bottom:calc(var(--tab) + 84px + env(safe-area-inset-bo
 .zhist-del .ic{width:17px;height:17px}
 .zhist-empty{padding:26px 12px;text-align:center;color:var(--mute);font-size:13.5px;line-height:1.8}
 .zhist-empty strong{display:block;margin-bottom:4px;font:500 15px var(--f-head);color:var(--ink)}
+.zad-usage{margin:-4px 0 14px;padding:0 2px}
+.zad-usage-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;line-height:1.55;color:var(--mute)}
+.zad-usage-tok strong{font:500 13px var(--f-head);color:var(--ink)}
+.zad-usage-tok.low strong{color:var(--gold-ink)}
+.zad-usage-tok.out,.zad-usage-tok.out strong{color:#c96f5d}
+.zad-usage-rst{color:var(--mute)}
+.zad-usage-rst.out{color:#c96f5d}
+.zad-usage-bar{height:3px;margin-top:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.zad-usage-bar i{display:block;height:100%;border-radius:3px;background:var(--gold);transition:width .35s ease,background .25s ease}
+.zad-usage-bar.low i{background:var(--gold-ink)}
+.zad-usage-bar.out i{background:#c96f5d}
 </style>
 <script src="/lib/zad-format.js"></script>
 <script src="/lib/zad-history.js"></script>
+<script src="/lib/zad-usage.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -1091,7 +1103,7 @@ function draw(){chk();qStop();ptStop();tabs();let h="";
  else if(V.s=="zad")h=zadView();
  else if(V.s=="fav"){fav=fav.filter(id=>I[id]);h=`<div class="top-row"><div><p class="eyebrow">محفوظاتك</p><h1 class="title">المفضلة</h1></div>${topActions()}</div>`+(fav.length?cards("lib",fav):'<p class="empty">اضغط على القلب في أي ذكر لتجده هنا</p>')}
 
- $("#app").innerHTML=`<main>${h}</main>`;if(V.s=="qibla")qUpd();if(V.s=="home"){insUpd();ptStart()}if(V.s=="zad")zadInit();zadFabSync()}
+ $("#app").innerHTML=`<main>${h}</main>`;if(V.s=="qibla")qUpd();if(V.s=="home"){insUpd();ptStart()}if(V.s=="zad")zadInit();else zadUsageStopTimer();zadFabSync()}
 function sq(v){const q=nz(v.trim());$("#hb").hidden=!!q;let r="";if(q){const m=Object.keys(I).filter(id=>nz(I[id][0]+" "+I[id][1]+" "+(I[id][4]||"")).includes(q));r=m.length?cards("lib",m):'<p class="empty">لا نتائج</p>'}$("#res").innerHTML=r}
 function upd(k,id){const e=G("i-"+k);if(!e)return;const b=e.querySelector(".cnt");b.textContent=lab(k,id);b.classList.toggle("done",isd(k,id));e.classList.toggle("done",isd(k,id));const p=e.querySelector(".prog i");if(p)p.style.width=wd(k,id)+"%"}
 function after(){logDay();if(V.s=="daily"){$("#dh").innerHTML=dhead();const w=document.querySelector(".welc");if(w&&started(V.g))w.remove()}}
@@ -1302,6 +1314,8 @@ const ZAD_QPS=[
 ];
 const zadUserId=window.ZadHistory?window.ZadHistory.getOrCreateUserId(localStorage):"default";
 let zadStore=window.ZadHistory?window.ZadHistory.loadStore(localStorage,zadUserId):{version:1,activeId:null,conversations:[]};
+let zadUsageState=window.ZadUsage?window.ZadUsage.loadUsage(localStorage,zadUserId):null;
+let zadUsageTimer=null,zadConfigFetchedAt=0;
 let zadMsgs=[];
 function zadSyncMsgs(){
  zadMsgs=window.ZadHistory?window.ZadHistory.getConversationMessages(zadStore,zadStore.activeId):[];
@@ -1319,6 +1333,53 @@ function zadSave(){
   zadStore=window.ZadHistory.saveStore(localStorage,zadUserId,zadStore);
  }
  zadSyncMsgs();
+}
+function zadSaveUsage(){
+ if(window.ZadUsage&&zadUsageState){
+  zadUsageState=window.ZadUsage.saveUsage(localStorage,zadUserId,zadUsageState);
+ }
+}
+function zadUsageSummary(){
+ if(!window.ZadUsage)return null;
+ zadUsageState=window.ZadUsage.loadUsage(localStorage,zadUserId,zadUsageState&&zadUsageState.limit);
+ return window.ZadUsage.getUsageSummary(zadUsageState);
+}
+function zadUsageStopTimer(){
+ if(zadUsageTimer){clearInterval(zadUsageTimer);zadUsageTimer=null;}
+}
+function zadUsageTick(){
+ if(V.s!=="zad"||!window.ZadUsage){zadUsageStopTimer();return;}
+ const prevDay=zadUsageState&&zadUsageState.dayKey;
+ const prevBlocked=!!(zadUsageState&&zadUsageState.blockedUntil>0);
+ const sum=zadUsageSummary();
+ if(!sum)return;
+ if((prevDay&&sum.dayKey!==prevDay)||(prevBlocked&&!sum.blockedUntil)){
+  draw();
+  return;
+ }
+ const rstEl=G("zad-usage-rst");
+ if(rstEl){
+  rstEl.textContent=`يتجدد خلال ${window.ZadUsage.formatRemainingResetTime(sum.msUntilReset)}`;
+ }
+}
+function zadUsageStartTimer(){
+ zadUsageStopTimer();
+ if(V.s!=="zad"||!window.ZadUsage)return;
+ zadUsageTimer=setInterval(zadUsageTick,1000);
+}
+async function zadSyncUsageConfig(){
+ if(!window.ZadUsage)return;
+ if(Date.now()-zadConfigFetchedAt<60000)return;
+ zadConfigFetchedAt=Date.now();
+ try{
+  const res=await fetch("/api/zad/config",{method:"GET"});
+  if(!res.ok)return;
+  const cfg=await res.json().catch(()=>null);
+  if(!cfg)return;
+  zadUsageState=window.ZadUsage.applyServerConfig(zadUsageState||window.ZadUsage.loadUsage(localStorage,zadUserId),cfg);
+  zadSaveUsage();
+  if(V.s==="zad")draw();
+ }catch{}
 }
 function zadClampPos(pos){
  const vw=window.innerWidth||390,vh=window.innerHeight||844;
@@ -1456,7 +1517,7 @@ function zadStartCooldown(seconds){
  },1000);
 }
 function zadBack(){
- zadErr="";zadReqId="";zadClearCooldown();
+ zadErr="";zadReqId="";zadClearCooldown();zadUsageStopTimer();
  go(zadPrev&&zadPrev!=="zad"?zadPrev:"home",zadPrevC);
 }
 function zadBubble(m,idx){
@@ -1551,22 +1612,35 @@ function zadView(){
  const histBtn=`<button type="button" class="zad-rst" id="zad-hist-btn" onclick="zadHistOpen()" aria-label="سجل المحادثات">${ic("hist")}<span>سجل المحادثات${savedCount?` (${ar(savedCount)})`:""}</span></button>`;
  const rst=zadMsgs.length||zadErr?`<button type="button" class="zad-rst" id="zad-new-btn" onclick="zadReset()" aria-label="بدء محادثة جديدة"${zadBusy?" disabled":""}>${ic("reset")}<span>محادثة جديدة</span></button>`:"";
  const visBtn=`<button type="button" class="zad-vis" onclick="zadSetFabHidden(${zadFabHidden?"false":"true"})">${zadFabHidden?"إظهار الأيقونة العائمة":"إخفاء الأيقونة العائمة"}</button>`;
+ const sum=zadUsageSummary();
+ const isDailyOut=!!(sum&&(sum.isUserLimitReached||sum.isUpstreamDailyBlocked));
+ const isLow=!!(sum&&!isDailyOut&&sum.percentRemaining<=20);
+ const toneCls=isDailyOut?" out":(isLow?" low":"");
+ const resetTxt=sum&&window.ZadUsage?`يتجدد خلال ${window.ZadUsage.formatRemainingResetTime(sum.msUntilReset)}`:"";
+ const tokHtml=sum?(sum.isUpstreamDailyBlocked?`تم بلوغ الحد اليومي المتاح حاليًا`:`المتبقي اليوم: <strong>${ar(sum.remainingTokens)}</strong> / ${ar(sum.limit)} توكن`):"";
+ const usageBar=sum?`<div class="zad-usage" aria-live="polite"><div class="zad-usage-row"><span class="zad-usage-tok${toneCls}" id="zad-usage-tok">${tokHtml}</span><span class="zad-usage-rst${isDailyOut?" out":""}" id="zad-usage-rst">${esc(resetTxt)}</span></div><div class="zad-usage-bar${toneCls}" role="progressbar" aria-label="الحد اليومي المتبقي من التوكنز" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${sum.isUpstreamDailyBlocked?0:sum.percentRemaining}"><i style="width:${sum.isUpstreamDailyBlocked?0:sum.percentRemaining}%"></i></div></div>`:"";
  const welcome=`<article class="zmsg a"><div class="zmh"><span>زاد · مساعد حسنة</span></div><div class="zmb">${zadFmt(ZAD_WELCOME)}</div></article>`;
- const qps=zadMsgs.length===0&&!zadBusy?`<p class="zad-qpt">اقتراحات سريعة</p><div class="zad-qp">${ZAD_QPS.map((q,i)=>`<button type="button" class="zad-q" onclick="zadQuick(${i})"><span>${esc(q)}</span>${ic("chev")}</button>`).join("")}</div>`:"";
+ const qps=zadMsgs.length===0&&!zadBusy&&!isDailyOut?`<p class="zad-qpt">اقتراحات سريعة</p><div class="zad-qp">${ZAD_QPS.map((q,i)=>`<button type="button" class="zad-q" onclick="zadQuick(${i})"><span>${esc(q)}</span>${ic("chev")}</button>`).join("")}</div>`:"";
  const stream=zadMsgs.map((m,i)=>zadBubble(m,i)).join("");
  const loading=zadBusy?`<div class="zmsg a zloading" aria-live="polite"><span class="zdots"><i></i><i></i><i></i></span><span>زاد يراجع المصادر الموثوقة…</span></div>`:"";
  const rem=zadCooldownLeft();
- const retryBtn=zadLastPrompt?`<button type="button" class="ghost" id="zad-retry-btn" onclick="zadRetry()"${rem>0?" disabled":""}>${rem>0?`إعادة المحاولة (${zadFmtWait(rem)})`:"إعادة المحاولة"}</button>`:"";
- const err=zadErr?`<div class="zmsg err" role="alert"><p>${esc(zadErr)}</p>${retryBtn}</div>`:"";
+ const retryBtn=zadLastPrompt&&!isDailyOut?`<button type="button" class="ghost" id="zad-retry-btn" onclick="zadRetry()"${rem>0?" disabled":""}>${rem>0?`إعادة المحاولة (${zadFmtWait(rem)})`:"إعادة المحاولة"}</button>`:"";
+ const limitNotice=isDailyOut&&!zadErr?`<div class="zmsg err" role="status"><p>${sum.isUpstreamDailyBlocked?"تم بلوغ الحد اليومي المتاح لاستخدام مساعد زاد حاليًا. يمكنك تصفح محادثاتك السابقة حتى يتجدد الحد اليومي.":"لقد استهلكت رصيدك اليومي المتاح من التوكنز. يمكنك تصفح محادثاتك السابقة حتى يتجدد الحد اليومي."}</p></div>`:"";
+ const err=zadErr?`<div class="zmsg err" role="alert"><p>${esc(zadErr)}</p>${retryBtn}</div>`:limitNotice;
+ const inputDisabled=zadBusy||isDailyOut;
+ const inputPh=isDailyOut?"تم بلوغ الحد اليومي حاليًا…":"اسأل زاد عن الإسلام أو عن تطبيق حسنة…";
  return `<div class="zad-head">${tbar("زاد","zadBack()")}</div>
 <div class="zad-sub"><p class="eyebrow">مساعد حسنة الإسلامي</p><div class="zad-sub-acts">${histBtn}${rst}${visBtn}</div></div>
+${usageBar}
 <div class="zad-wrap"><div class="zad-msgs" id="zad-msgs">${welcome}${qps}${stream}${loading}${err}</div></div>
-<div class="zad-bar"><textarea id="zad-in" rows="1" maxlength="2000" placeholder="اسأل زاد عن الإسلام أو عن تطبيق حسنة…" aria-label="سؤالك لمساعد زاد" oninput="zadGrow(this)" onkeydown="zadKey(event)"${zadBusy?" disabled":""}></textarea><button type="button" class="zad-send" id="zad-send" aria-label="إرسال" onclick="zadSend()"${zadBusy?" disabled":""}>${ic("send")}</button></div>`;
+<div class="zad-bar"><textarea id="zad-in" rows="1" maxlength="2000" placeholder="${inputPh}" aria-label="سؤالك لمساعد زاد" oninput="zadGrow(this)" onkeydown="zadKey(event)"${inputDisabled?" disabled":""}></textarea><button type="button" class="zad-send" id="zad-send" aria-label="إرسال" onclick="zadSend()"${inputDisabled?" disabled":""}>${ic("send")}</button></div>`;
 }
 function zadInit(){
  const inp=G("zad-in");
  if(inp)zadGrow(inp);
  zadSyncRetryBtn();
+ zadUsageStartTimer();
+ zadSyncUsageConfig();
  zadScroll();
 }
 function zadGrow(el){
@@ -1622,6 +1696,12 @@ function zadNewReqId(){
 }
 async function zadSend(overrideText,isRetry){
  if(zadBusy)return;
+ const curSum=zadUsageSummary();
+ if(curSum&&(curSum.isUserLimitReached||curSum.isUpstreamDailyBlocked)){
+  zadErr=curSum.isUpstreamDailyBlocked?"تم بلوغ الحد اليومي المتاح لاستخدام مساعد زاد حاليًا. يرجى الانتظار حتى يتجدد الحد اليومي.":"لقد استهلكت رصيدك اليومي المتاح من التوكنز. يرجى الانتظار حتى يتجدد الحد اليومي.";
+  if(V.s==="zad")draw();
+  return;
+ }
  const inp=G("zad-in");
  const raw=typeof overrideText==="string"?overrideText:(inp?inp.value:"");
  const text=raw.trim();
@@ -1647,13 +1727,19 @@ async function zadSend(overrideText,isRetry){
   const res=await fetch("/api/zad/chat",{
    method:"POST",
    headers:{"Content-Type":"application/json","Idempotency-Key":zadReqId},
-   body:JSON.stringify({message:text,history,requestId:zadReqId}),
+   body:JSON.stringify({message:text,history,requestId:zadReqId,userId:zadUserId}),
    signal:ctrl?ctrl.signal:undefined
   });
   const data=await res.json().catch(()=>({}));
   if(!res.ok||!data.reply){
    const hdrRetry=parseInt(res.headers&&res.headers.get?res.headers.get("Retry-After"):"",10);
    const retryAfterSeconds=Number.isFinite(Number(data.retryAfterSeconds))&&Number(data.retryAfterSeconds)>0?Math.ceil(Number(data.retryAfterSeconds)):(Number.isFinite(hdrRetry)&&hdrRetry>0?hdrRetry:0);
+   if(res.status===429&&window.ZadUsage){
+    zadUsageState=window.ZadUsage.recordUpstreamBlock(zadUsageState,retryAfterSeconds||15,data.code||"QUOTA_EXHAUSTED");
+    if(data.dailyTokenLimit)zadUsageState.limit=Number(data.dailyTokenLimit);
+    if(data.resetAt)zadUsageState.resetAt=Number(data.resetAt);
+    zadSaveUsage();
+   }
    const apiErr=new Error(data.error||"حدث خطأ أثناء الاتصال بمساعد زاد. يرجى المحاولة مرة أخرى.");
    apiErr.status=res.status;
    apiErr.code=data.code||"";
@@ -1665,6 +1751,11 @@ async function zadSend(overrideText,isRetry){
    zadSave();
   }else{
    zadMsgs.push({role:"model",text:data.reply});
+  }
+  if(window.ZadUsage){
+   zadUsageState=window.ZadUsage.recordUsage(zadUsageState,data.usage,data.dailyTokenLimit);
+   if(data.resetAt)zadUsageState.resetAt=Number(data.resetAt);
+   zadSaveUsage();
   }
   zadLastPrompt="";zadReqId="";zadClearCooldown();
  }catch(err){
@@ -1687,7 +1778,7 @@ async function zadSend(overrideText,isRetry){
   if(V.s==="zad"){
    draw();
    const nextInp=G("zad-in");
-   if(nextInp&&!zadErr)nextInp.focus();
+   if(nextInp&&!zadErr&&!nextInp.disabled)nextInp.focus();
   }
  }
 }

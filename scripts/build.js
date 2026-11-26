@@ -19,6 +19,7 @@ function buildStaticDist(rootDir = path.resolve(__dirname, '..')) {
   fs.mkdirSync(distLibDir, { recursive: true });
   fs.copyFileSync(path.join(rootDir, 'lib', 'zad-format.js'), path.join(distLibDir, 'zad-format.js'));
   fs.copyFileSync(path.join(rootDir, 'lib', 'zad-history.js'), path.join(distLibDir, 'zad-history.js'));
+  fs.copyFileSync(path.join(rootDir, 'lib', 'zad-usage.js'), path.join(distLibDir, 'zad-usage.js'));
 
   return distDir;
 }
