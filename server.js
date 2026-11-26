@@ -21,6 +21,10 @@ app.get('/lib/zad-format.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'lib', 'zad-format.js'));
 });
 
+app.get('/lib/zad-history.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'lib', 'zad-history.js'));
+});
+
 app.get(['/', '/index.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
