@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       api_origin:
-        description: "Optional Vercel app URL (e.g. https://your-app.vercel.app) for Zad AI inside the APK"
+        description: "Optional Vercel app URL (e.g. https://hassana-sandy.vercel.app) for Zad AI inside the APK"
         required: false
-        default: ""
+        default: "https://hassana-sandy.vercel.app"
 
 jobs:
   build-android-apk:
