@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { handleZadConfig, handleZadChat } = require('./lib/zad-service');
+const { handleZadConfig, handleZadChat, handleApkDownload } = require('./lib/zad-service');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json({ limit: '1mb' }));
 
 app.all('/api/zad/config', handleZadConfig);
+app.all('/api/apk', (req, res) => handleApkDownload(req, res));
 app.all('/api/zad/chat', (req, res) => handleZadChat(req, res));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -27,6 +28,10 @@ app.get('/lib/zad-history.js', (req, res) => {
 
 app.get('/lib/zad-usage.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'lib', 'zad-usage.js'));
+});
+
+app.get('/lib/zad-notifications.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'lib', 'zad-notifications.js'));
 });
 
 app.get(['/', '/index.html'], (req, res) => {

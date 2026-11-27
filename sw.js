@@ -1,6 +1,6 @@
 // Service Worker – حسنة (offline support)
 // غيّر رقم الإصدار عند كل تحديث للتطبيق حتى يصل التحديث للمستخدمين
-const VERSION = 'hasana-v20';
+const VERSION = 'hasana-v21';
 const PAGES = VERSION + '-pages';
 const ASSETS = VERSION + '-assets';
 
@@ -30,6 +30,7 @@ async function precacheStaticShell() {
     '/lib/zad-format.js',
     '/lib/zad-history.js',
     '/lib/zad-usage.js',
+    '/lib/zad-notifications.js',
   ];
   await Promise.all(urls.map((u) =>
     fetch(u).then((r) => (r.ok ? cache.put(u, r) : null)).catch(() => {})

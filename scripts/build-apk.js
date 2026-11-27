@@ -44,6 +44,10 @@ function patchAndroidManifestXml(xml) {
     'android.permission.INTERNET',
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.ACCESS_FINE_LOCATION',
+    'android.permission.POST_NOTIFICATIONS',
+    'android.permission.SCHEDULE_EXACT_ALARM',
+    'android.permission.RECEIVE_BOOT_COMPLETED',
+    'android.permission.WAKE_LOCK',
   ];
 
   const missingPerms = permissions.filter((perm) => !next.includes(perm));
@@ -135,6 +139,23 @@ function configureAndroidProject(rootDir = path.resolve(__dirname, '..')) {
       fs.copyFileSync(launcherPath, roundPath);
       fs.copyFileSync(launcherPath, fgPath);
     }
+
+    const drawableDir = path.join(resDir, 'drawable');
+    fs.mkdirSync(drawableDir, { recursive: true });
+    const smallIconXml = `<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14.5,3.2C9.7,3.8 6,7.9 6,12.8c0,5.3 4.3,9.6 9.6,9.6c1.9,0 3.7,-0.6 5.2,-1.6c-4,-0.3 -7.2,-3.6 -7.2,-7.7c0,-3.6 2.5,-6.6 5.8,-7.5C17.9,3.9 16.3,3 14.5,3.2z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18.2,7.2l0.6,1.6l1.6,0.6l-1.6,0.6l-0.6,1.6l-0.6,-1.6L16,9.4l1.6,-0.6z" />
+</vector>
+`;
+    fs.writeFileSync(path.join(drawableDir, 'ic_stat_hassana.xml'), smallIconXml, 'utf8');
   }
 
   return androidDir;

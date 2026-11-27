@@ -15,8 +15,10 @@ on:
 jobs:
   build-android-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
-      HASSANA_API_ORIGIN: ${{ github.event.inputs.api_origin || vars.HASSANA_API_ORIGIN || '' }}
+      HASSANA_API_ORIGIN: ${{ github.event.inputs.api_origin || vars.HASSANA_API_ORIGIN || 'https://hassana-sandy.vercel.app' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,7 +51,7 @@ jobs:
 
       - name: Install Capacitor Android tooling (build-time only)
         run: |
-          npm install --no-save @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npm install --no-save @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/local-notifications@6
 
       - name: Generate and configure Android project
         run: |
@@ -75,3 +77,14 @@ jobs:
           name: Hassana-Android-APK
           path: Hassana-Android.apk
           retention-days: 90
+
+      - name: Publish Hassana-Android.apk to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view apk-latest >/dev/null 2>&1; then
+            gh release upload apk-latest Hassana-Android.apk --clobber
+            gh release edit apk-latest --latest --title "Hassana Android APK"
+          else
+            gh release create apk-latest Hassana-Android.apk --latest --title "Hassana Android APK" --notes "النسخة الأحدث من تطبيق حسنة للأندرويد (Hassana-Android.apk)."
+          fi
