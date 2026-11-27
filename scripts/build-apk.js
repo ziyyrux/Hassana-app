@@ -46,6 +46,7 @@ function patchAndroidManifestXml(xml) {
     'android.permission.ACCESS_FINE_LOCATION',
     'android.permission.POST_NOTIFICATIONS',
     'android.permission.SCHEDULE_EXACT_ALARM',
+    'android.permission.USE_EXACT_ALARM',
     'android.permission.RECEIVE_BOOT_COMPLETED',
     'android.permission.WAKE_LOCK',
   ];
@@ -156,6 +157,15 @@ function configureAndroidProject(rootDir = path.resolve(__dirname, '..')) {
 </vector>
 `;
     fs.writeFileSync(path.join(drawableDir, 'ic_stat_hassana.xml'), smallIconXml, 'utf8');
+  }
+
+  const pluginsJsonPath = path.join(androidDir, 'app', 'src', 'main', 'assets', 'capacitor.plugins.json');
+  if (fs.existsSync(pluginsJsonPath)) {
+    const pluginsList = JSON.parse(fs.readFileSync(pluginsJsonPath, 'utf8'));
+    const hasLocalNotif = Array.isArray(pluginsList) && pluginsList.some((p) => p && p.pkg === '@capacitor/local-notifications');
+    if (!hasLocalNotif) {
+      throw new Error('Capacitor @capacitor/local-notifications plugin was not synced into android/app/src/main/assets/capacitor.plugins.json');
+    }
   }
 
   return androidDir;

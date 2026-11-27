@@ -51,7 +51,7 @@ jobs:
 
       - name: Install Capacitor Android tooling (build-time only)
         run: |
-          npm install --no-save @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/local-notifications@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/local-notifications@6
 
       - name: Generate and configure Android project
         run: |
