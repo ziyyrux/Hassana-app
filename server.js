@@ -7,8 +7,8 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '1mb' }));
 
-app.get('/api/zad/config', handleZadConfig);
-app.post('/api/zad/chat', (req, res) => handleZadChat(req, res));
+app.all('/api/zad/config', handleZadConfig);
+app.all('/api/zad/chat', (req, res) => handleZadChat(req, res));
 
 app.use(express.static(path.join(__dirname, 'public')));
 

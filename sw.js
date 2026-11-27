@@ -1,6 +1,6 @@
 // Service Worker – حسنة (offline support)
 // غيّر رقم الإصدار عند كل تحديث للتطبيق حتى يصل التحديث للمستخدمين
-const VERSION = 'hasana-v19';
+const VERSION = 'hasana-v20';
 const PAGES = VERSION + '-pages';
 const ASSETS = VERSION + '-assets';
 
@@ -21,11 +21,27 @@ async function precacheFonts() {
   ));
 }
 
+async function precacheStaticShell() {
+  const cache = await caches.open(ASSETS);
+  const urls = [
+    '/manifest.json',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
+    '/lib/zad-format.js',
+    '/lib/zad-history.js',
+    '/lib/zad-usage.js',
+  ];
+  await Promise.all(urls.map((u) =>
+    fetch(u).then((r) => (r.ok ? cache.put(u, r) : null)).catch(() => {})
+  ));
+}
+
 self.addEventListener('install', (e) => {
   e.waitUntil((async () => {
     // الصفحة الرئيسية ضرورية: إن فشلت لا يكتمل التثبيت
     const pages = await caches.open(PAGES);
     await pages.addAll([new Request('/', { cache: 'reload' })]);
+    try { await precacheStaticShell(); } catch (err) { /* اختياري */ }
     try { await precacheFonts(); } catch (err) { /* اختياري */ }
     await self.skipWaiting();
   })());
